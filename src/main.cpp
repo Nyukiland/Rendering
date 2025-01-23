@@ -8,6 +8,7 @@ int main()
     gl::maximize_window(); // On peut la maximiser si on veut
 
     glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
 
     auto camera = gl::Camera{};
@@ -15,8 +16,8 @@ int main()
 
     auto const shader = gl::Shader
     {{
-    .vertex   = gl::ShaderSource::File{"res/vertexMove.glsl"},
-    .fragment = gl::ShaderSource::File{"res/fragment.glsl"},
+    .vertex   = gl::ShaderSource::File{"res/vertex3D.glsl"},
+    .fragment = gl::ShaderSource::File{"res/fragment3D.glsl"},
     }};
 
     auto const House_Mesh = gl::Mesh
@@ -62,9 +63,9 @@ int main()
         glm::mat4 const projection_matrix = glm::infinitePerspective(1.f /*field of view in radians*/, gl::framebuffer_aspect_ratio() /*aspect ratio*/, 0.001f /*near plane*/);
 
         glClearColor(0, 0, 0, 1.f); 
-        glClear(GL_COLOR_BUFFER_BIT);
-
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //gl::bind_default_shader(); // On a besoin qu'un shader soit bind (i.e. "actif") avant de draw(). On en reparle dans la section d'après.
+        
         shader.bind();
         shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
         House_Mesh.draw();
