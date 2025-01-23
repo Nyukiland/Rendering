@@ -23,7 +23,11 @@ int main()
     auto const House_Mesh = gl::Mesh
     {{
         .vertex_buffers = {{
-            .layout = {gl::VertexAttribute::Position3D{0 /*Index de l'attribut dans le shader, on en reparle juste après*/}},
+            .layout = 
+            {
+                gl::VertexAttribute::Position3D{0 /*Index de l'attribut dans le shader, on en reparle juste après*/},
+                //gl::VertexAttribute::UV{}
+            },
             .data   = {
                 -0.25f, -0.5f, -0.25f, //0
                 +0.25f, -0.5f, -0.25f, //1
