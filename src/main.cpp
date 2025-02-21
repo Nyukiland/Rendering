@@ -1,5 +1,79 @@
 #include "opengl-framework/opengl-framework.hpp" // Inclue la librairie qui va nous servir à faire du rendu
 #include "glm/ext/matrix_clip_space.hpp"
+#include <filesystem>
+#include <iostream>
+#include "tiny_obj_loader.h"
+
+auto load_mesh(std::filesystem::path const& path) -> gl::Mesh
+{
+    auto reader = tinyobj::ObjReader{};
+    reader.ParseFromFile(gl::make_absolute_path(path).string(), {});
+
+    if (!reader.Error().empty())
+        throw std::runtime_error("Failed to read 3D model:\n" + reader.Error());
+    if (!reader.Warning().empty())
+        std::cout << "Warning while reading 3D model:\n" + reader.Warning() << std::endl;
+
+    auto const& attrib = reader.GetAttrib();
+    auto const& shapes = reader.GetShapes();
+
+    std::vector<float> vertices;
+    std::vector<uint32_t> indices;
+
+    for (auto const& shape : shapes)
+    {
+        for (size_t i = 0; i < shape.mesh.indices.size(); i++)
+        {
+            auto const& idx = shape.mesh.indices[i];
+
+            // Position
+            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 0]);
+            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 1]);
+            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 2]);
+
+            // UV
+            if (!attrib.texcoords.empty() && idx.texcoord_index >= 0)
+            {
+                vertices.push_back(attrib.texcoords[2 * idx.texcoord_index + 0]);
+                vertices.push_back(attrib.texcoords[2 * idx.texcoord_index + 1]);
+            }
+            else
+            {
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+            }
+
+            // Normal
+            if (!attrib.normals.empty() && idx.normal_index >= 0)
+            {
+                vertices.push_back(attrib.normals[3 * idx.normal_index + 0]);
+                vertices.push_back(attrib.normals[3 * idx.normal_index + 1]);
+                vertices.push_back(attrib.normals[3 * idx.normal_index + 2]);
+            }
+            else
+            {
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+                vertices.push_back(1.0f);
+            }
+
+            indices.push_back(static_cast<uint32_t>(i));
+        }
+    }
+
+    return gl::Mesh
+    {{
+        .vertex_buffers = {{
+            .layout = {
+                gl::VertexAttribute::Position3D{0},
+                gl::VertexAttribute::UV{1},
+                gl::VertexAttribute::Normal3D{2}
+            },
+            .data = vertices,
+        }},
+        .index_buffer = indices,
+    }};
+}
 
 int main()
 {
@@ -20,114 +94,7 @@ int main()
     .fragment = gl::ShaderSource::File{"res/fragment3D.glsl"},
     }};
 
-    auto const Mesh = gl::Mesh
-    {{
-        .vertex_buffers = {{
-            .layout = 
-            {
-                gl::VertexAttribute::Position3D{0},
-                gl::VertexAttribute::UV{1}
-            },
-            .data   = {
-                //face1
-                -1.0f, -1.0f, -1.0f, //0
-                0, 0,
-
-                1.0f, -1.0f, -1.0f, //1
-                0,1,
-
-                -1.0f, 1.0f, -1.0f, //2
-                1,0,
-
-                1.0f, 1.0f, -1.0f, //3
-                1,1,
-
-                //face2
-                -1.0f, -1.0f, 1.0f, //4
-                0, 0,
-
-                1.0f, -1.0f, 1.0f, //5
-                0,1,
-
-                -1.0f, 1.0f, 1.0f, //6
-                1,0,
-
-                1.0f, 1.0f, 1.0f, //7
-                1,1,
-
-                //face3
-                -1.0f, -1.0f, -1.0f, //8
-                0, 0,
-
-                1.0f, -1.0f, -1.0f, //9
-                0,1,
-
-                -1.0f, -1.0f, 1.0f, //10
-                1,0,
-
-                1.0f, -1.0f, 1.0f, //11
-                1,1,
-
-                //face4
-                -1.0f, 1.0f, -1.0f, //12
-                0, 0,
-
-                -1.0f, 1.0f, 1.0f, //13
-                0,1,
-
-                1.0f, 1.0f, -1.0f, //14
-                1,0,
-
-                1.0f, 1.0f, 1.0f, //15
-                1,1,
-
-                //face5
-                -1.0f, -1.0f, -1.0f, //16
-                0, 0,
-
-                -1.0f, -1.0f, 1.0f, //17
-                0,1,
-
-                -1.0f, 1.0f, -1.0f, //18
-                1,0,
-
-                -1.0f, 1.0f, 1.0f, //19
-                1,1,
-
-                //face6
-                1.0f, 1.0f, 1.0f, //20
-                0, 0,
-
-                1.0f, -1.0f, 1.0f, //21
-                0,1,
-
-                1.0f, 1.0f, -1.0f, //22
-                1,0,
-
-                1.0f, -1.0f, -1.0f, //23
-                1,1,
-            },
-        }},
-        .index_buffer   = {
-            0, 1, 2,
-            1, 2, 3,
-
-            4, 5, 6,
-            5, 6, 7,
-
-            8, 9, 10,
-            9, 10, 11,
-
-            12, 13, 14,
-            13, 14, 15,
-
-            16, 17, 18,
-            17, 18, 19,
-
-            20, 21, 22,
-            21, 22, 23,
-        },
-    }};
+    auto const Mesh = load_mesh("res/fleur.obj");
 
     while (gl::window_is_open())
     {
