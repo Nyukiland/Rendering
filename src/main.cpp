@@ -90,8 +90,8 @@ int main()
 
     auto const shader = gl::Shader
     {{
-    .vertex   = gl::ShaderSource::File{"res/vertex3D.glsl"},
-    .fragment = gl::ShaderSource::File{"res/fragment3D.glsl"},
+    .vertex   = gl::ShaderSource::File{"res/vertexFlower.glsl"},
+    .fragment = gl::ShaderSource::File{"res/fragmentFlower.glsl"},
     }};
 
     auto const Mesh = load_mesh("res/fleur.obj");
@@ -107,6 +107,7 @@ int main()
         
         shader.bind();
         shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
+        shader.set_uniform("lightDir", glm::normalize(glm::vec3(0,0,1)));
         Mesh.draw();
     }
 }
