@@ -129,7 +129,7 @@ int main()
         },
     }};
 
-    auto const texture = gl::Texture{
+    auto const myTexture = gl::Texture{
         gl::TextureSource::File{ 
             .path           = "res/chatTexture.png",
             .flip_y         = true, // Il n'y a pas de convention universelle sur la direction de l'axe Y. Les fichiers (.png, .jpeg) utilisent souvent une direction différente de celle attendue par OpenGL. Ce booléen flip_y est là pour inverser la texture si jamais elle n'apparaît pas dans le bon sens.
@@ -154,6 +154,7 @@ int main()
         
         shader.bind();
         shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
+        shader.set_uniform("m_texture", myTexture);
         Mesh.draw();
     }
 }
