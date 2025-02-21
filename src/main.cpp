@@ -20,46 +20,128 @@ int main()
     .fragment = gl::ShaderSource::File{"res/fragment3D.glsl"},
     }};
 
-    auto const House_Mesh = gl::Mesh
+    auto const Mesh = gl::Mesh
     {{
         .vertex_buffers = {{
             .layout = 
             {
-                gl::VertexAttribute::Position3D{0 /*Index de l'attribut dans le shader, on en reparle juste après*/},
-                //gl::VertexAttribute::UV{}
+                gl::VertexAttribute::Position3D{0},
+                gl::VertexAttribute::UV{1}
             },
             .data   = {
-                -0.25f, -0.5f, -0.25f, //0
-                +0.25f, -0.5f, -0.25f, //1
-                -0.25f, +0.5f, -0.25f, //2
-                +0.25f, +0.5f, -0.25f, //3
-                -0.25f, -0.5f, +0.25f, //4
-                +0.25f, -0.5f, +0.25f, //5
-                -0.25f, +0.5f, +0.25f, //6
-                +0.25f, +0.5f, +0.25f, //7
-                +0.f, +1.f, +0.f, //8
-                +0.f, -1.f, +0.f //9
+                //face1
+                -1.0f, -1.0f, -1.0f, //0
+                0, 0,
+
+                1.0f, -1.0f, -1.0f, //1
+                0,1,
+
+                -1.0f, 1.0f, -1.0f, //2
+                1,0,
+
+                1.0f, 1.0f, -1.0f, //3
+                1,1,
+
+                //face2
+                -1.0f, -1.0f, 1.0f, //4
+                0, 0,
+
+                1.0f, -1.0f, 1.0f, //5
+                0,1,
+
+                -1.0f, 1.0f, 1.0f, //6
+                1,0,
+
+                1.0f, 1.0f, 1.0f, //7
+                1,1,
+
+                //face3
+                -1.0f, -1.0f, -1.0f, //8
+                0, 0,
+
+                1.0f, -1.0f, -1.0f, //9
+                0,1,
+
+                -1.0f, -1.0f, 1.0f, //10
+                1,0,
+
+                1.0f, -1.0f, 1.0f, //11
+                1,1,
+
+                //face4
+                -1.0f, 1.0f, -1.0f, //12
+                0, 0,
+
+                -1.0f, 1.0f, 1.0f, //13
+                0,1,
+
+                1.0f, 1.0f, -1.0f, //14
+                1,0,
+
+                1.0f, 1.0f, 1.0f, //15
+                1,1,
+
+                //face5
+                -1.0f, -1.0f, -1.0f, //16
+                0, 0,
+
+                -1.0f, -1.0f, 1.0f, //17
+                0,1,
+
+                -1.0f, 1.0f, -1.0f, //18
+                1,0,
+
+                -1.0f, 1.0f, 1.0f, //19
+                1,1,
+
+                //face6
+                1.0f, 1.0f, 1.0f, //20
+                0, 0,
+
+                1.0f, -1.0f, 1.0f, //21
+                0,1,
+
+                1.0f, 1.0f, -1.0f, //22
+                1,0,
+
+                1.0f, -1.0f, -1.0f, //23
+                1,1,
             },
         }},
         .index_buffer   = {
             0, 1, 2,
             1, 2, 3,
+
             4, 5, 6,
             5, 6, 7,
-            1, 3, 5,
-            3, 5, 7, 
-            0, 2, 4,
-            2, 4, 6,
-            0, 1, 9,
-            5, 4, 9,
-            0, 4, 9,
-            5, 1, 9,
-            2, 3, 8,
-            6, 7, 8,
-            3, 7, 8,
-            2, 6, 8
+
+            8, 9, 10,
+            9, 10, 11,
+
+            12, 13, 14,
+            13, 14, 15,
+
+            16, 17, 18,
+            17, 18, 19,
+
+            20, 21, 22,
+            21, 22, 23,
         },
     }};
+
+    auto const texture = gl::Texture{
+        gl::TextureSource::File{ 
+            .path           = "res/chatTexture.png",
+            .flip_y         = true, // Il n'y a pas de convention universelle sur la direction de l'axe Y. Les fichiers (.png, .jpeg) utilisent souvent une direction différente de celle attendue par OpenGL. Ce booléen flip_y est là pour inverser la texture si jamais elle n'apparaît pas dans le bon sens.
+            .texture_format = gl::InternalFormat::RGBA8, // Format dans lequel la texture sera stockée. On pourrait par exemple utiliser RGBA16 si on voulait 16 bits par canal de couleur au lieu de 8. (Mais ça ne sert à rien dans notre cas car notre fichier ne contient que 8 bits par canal, donc on ne gagnerait pas de précision). On pourrait aussi stocker en RGB8 si on ne voulait pas de canal alpha. On utilise aussi parfois des textures avec un seul canal (R8) pour des usages spécifiques.
+        },
+        gl::TextureOptions{
+            .minification_filter  = gl::Filter::Linear, // Comment on va moyenner les pixels quand on voit l'image de loin ?
+            .magnification_filter = gl::Filter::Linear, // Comment on va interpoler entre les pixels quand on zoom dans l'image ?
+            .wrap_x               = gl::Wrap::Repeat,   // Quelle couleur va-t-on lire si jamais on essaye de lire en dehors de la texture ?
+            .wrap_y               = gl::Wrap::Repeat,   // Idem, mais sur l'axe Y. En général on met le même wrap mode sur les deux axes.
+        }
+    };
 
     while (gl::window_is_open())
     {
@@ -72,6 +154,6 @@ int main()
         
         shader.bind();
         shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
-        House_Mesh.draw();
+        Mesh.draw();
     }
 }
