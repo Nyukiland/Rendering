@@ -1,87 +1,69 @@
-#include "opengl-framework/opengl-framework.hpp" // Inclue la librairie qui va nous servir à faire du rendu
+#include "opengl-framework/opengl-framework.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
-#include <filesystem>
-#include <iostream>
-#include "tiny_obj_loader.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include <vector>
+#include <cmath>
 
-auto load_mesh(std::filesystem::path const& path) -> gl::Mesh
-{
-    auto reader = tinyobj::ObjReader{};
-    reader.ParseFromFile(gl::make_absolute_path(path).string(), {});
-
-    if (!reader.Error().empty())
-        throw std::runtime_error("Failed to read 3D model:\n" + reader.Error());
-    if (!reader.Warning().empty())
-        std::cout << "Warning while reading 3D model:\n" + reader.Warning() << std::endl;
-
-    auto const& attrib = reader.GetAttrib();
-    auto const& shapes = reader.GetShapes();
-
-    std::vector<float> vertices;
-    std::vector<uint32_t> indices;
-
-    for (auto const& shape : shapes)
-    {
-        for (size_t i = 0; i < shape.mesh.indices.size(); i++)
-        {
-            auto const& idx = shape.mesh.indices[i];
-
-            // Position
-            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 0]);
-            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 1]);
-            vertices.push_back(attrib.vertices[3 * idx.vertex_index + 2]);
-
-            // UV
-            if (!attrib.texcoords.empty() && idx.texcoord_index >= 0)
-            {
-                vertices.push_back(attrib.texcoords[2 * idx.texcoord_index + 0]);
-                vertices.push_back(attrib.texcoords[2 * idx.texcoord_index + 1]);
-            }
-            else
-            {
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-            }
-
-            // Normal
-            if (!attrib.normals.empty() && idx.normal_index >= 0)
-            {
-                vertices.push_back(attrib.normals[3 * idx.normal_index + 0]);
-                vertices.push_back(attrib.normals[3 * idx.normal_index + 1]);
-                vertices.push_back(attrib.normals[3 * idx.normal_index + 2]);
-            }
-            else
-            {
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                vertices.push_back(1.0f);
-            }
-
-            indices.push_back(static_cast<uint32_t>(i));
-        }
-    }
-
-    return gl::Mesh
-    {{
-        .vertex_buffers = {{
-            .layout = {
-                gl::VertexAttribute::Position3D{0},
-                gl::VertexAttribute::UV{1},
-                gl::VertexAttribute::Normal3D{2}
-            },
-            .data = vertices,
-        }},
-        .index_buffer = indices,
-    }};
+// Helper function to check if the current cube should be removed
+bool is_removed(int x, int y, int z) {
+    return (x == 1 && y == 1 && z == 1); // The center cube is always removed
 }
 
-int main()
+// Recursive function to generate Menger Sponge mesh
+void generate_menger_sponge(std::vector<float>& vertices, std::vector<uint32_t>& indices, 
+                             float size, float offsetX, float offsetY, float offsetZ, 
+                             int iteration)
 {
-    // Initialisation
-    gl::init("TPs de Rendering"); // On crée une fenêtre et on choisit son nom
-    gl::maximize_window(); // On peut la maximiser si on veut
+    if (iteration == 0) {
+        // Base cube: vertices and indices
+        float half_size = size * 0.5f;
+        
+        // Cube vertices
+        vertices.push_back(offsetX - half_size); vertices.push_back(offsetY - half_size); vertices.push_back(offsetZ - half_size); // 0
+        vertices.push_back(offsetX + half_size); vertices.push_back(offsetY - half_size); vertices.push_back(offsetZ - half_size); // 1
+        vertices.push_back(offsetX + half_size); vertices.push_back(offsetY + half_size); vertices.push_back(offsetZ - half_size); // 2
+        vertices.push_back(offsetX - half_size); vertices.push_back(offsetY + half_size); vertices.push_back(offsetZ - half_size); // 3
+        vertices.push_back(offsetX - half_size); vertices.push_back(offsetY - half_size); vertices.push_back(offsetZ + half_size); // 4
+        vertices.push_back(offsetX + half_size); vertices.push_back(offsetY - half_size); vertices.push_back(offsetZ + half_size); // 5
+        vertices.push_back(offsetX + half_size); vertices.push_back(offsetY + half_size); vertices.push_back(offsetZ + half_size); // 6
+        vertices.push_back(offsetX - half_size); vertices.push_back(offsetY + half_size); vertices.push_back(offsetZ + half_size); // 7
+        
+        // Cube indices (two triangles per face)
+        uint32_t base_idx = vertices.size() / 3 - 8;
+        indices.push_back(base_idx + 0); indices.push_back(base_idx + 1); indices.push_back(base_idx + 2);
+        indices.push_back(base_idx + 0); indices.push_back(base_idx + 2); indices.push_back(base_idx + 3);
+        indices.push_back(base_idx + 4); indices.push_back(base_idx + 5); indices.push_back(base_idx + 6);
+        indices.push_back(base_idx + 4); indices.push_back(base_idx + 6); indices.push_back(base_idx + 7);
+        indices.push_back(base_idx + 0); indices.push_back(base_idx + 1); indices.push_back(base_idx + 5);
+        indices.push_back(base_idx + 0); indices.push_back(base_idx + 5); indices.push_back(base_idx + 4);
+        indices.push_back(base_idx + 1); indices.push_back(base_idx + 2); indices.push_back(base_idx + 6);
+        indices.push_back(base_idx + 1); indices.push_back(base_idx + 6); indices.push_back(base_idx + 5);
+        indices.push_back(base_idx + 2); indices.push_back(base_idx + 3); indices.push_back(base_idx + 7);
+        indices.push_back(base_idx + 2); indices.push_back(base_idx + 7); indices.push_back(base_idx + 6);
+        indices.push_back(base_idx + 3); indices.push_back(base_idx + 0); indices.push_back(base_idx + 4);
+        indices.push_back(base_idx + 3); indices.push_back(base_idx + 4); indices.push_back(base_idx + 7);
+    } else {
+        float new_size = size / 3.0f;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (is_removed(dx, dy, dz)) continue; // Skip removed cubes
 
+                    // Recursive call to generate the next level of cubes
+                    generate_menger_sponge(vertices, indices, new_size, 
+                                           offsetX + dx * new_size, 
+                                           offsetY + dy * new_size, 
+                                           offsetZ + dz * new_size, 
+                                           iteration - 1);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // Initialize OpenGL
+    gl::init("Menger Sponge Renderer");
+    gl::maximize_window();
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
@@ -91,33 +73,43 @@ int main()
 
     auto const shader = gl::Shader
     {{
-    .vertex   = gl::ShaderSource::File{"res/vertexFlower.glsl"},
-    .fragment = gl::ShaderSource::File{"res/fragmentFlower.glsl"},
+        .vertex   = gl::ShaderSource::File{"res/vertexFractal.glsl"},
+        .fragment = gl::ShaderSource::File{"res/fragmentFractal.glsl"},
     }};
 
-    auto const Mesh = load_mesh("res/Chest.obj");
+    // Generate Menger Sponge mesh with 4 iterations
+    std::vector<float> vertices;
+    std::vector<uint32_t> indices;
+    generate_menger_sponge(vertices, indices, 1.0f, 0.0f, 0.0f, 0.0f, 4);
+
+    // Create Mesh
+    auto mesh = gl::Mesh
+    {{
+        .vertex_buffers = {{
+            .layout = {
+                gl::VertexAttribute::Position3D{0}
+            },
+            .data = vertices,
+        }},
+        .index_buffer = indices,
+    }};
 
     float angle = 0.0f;
-
-    while (gl::window_is_open())
-    {
+    while (gl::window_is_open()) {
         glm::mat4 const view_matrix = camera.view_matrix();
-        glm::mat4 const projection_matrix = glm::infinitePerspective(1.f /*field of view in radians*/, gl::framebuffer_aspect_ratio() /*aspect ratio*/, 0.001f /*near plane*/);
-        glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 const projection_matrix = glm::infinitePerspective(1.f, gl::framebuffer_aspect_ratio(), 0.001f);
 
-        angle += 0.0001f;
 
-        glClearColor(0, 0, 0, 1.f); 
+        glClearColor(0, 0, 0, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         shader.bind();
-        shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix * rotMatrix});
-        shader.set_uniform("TransformMatrix", glm::mat4{rotMatrix});
-        shader.set_uniform("lightDir", glm::normalize(glm::vec3(0,1,1)));
-        shader.set_uniform("lightColor", glm::vec4(0.5f,0,0,1));
-        shader.set_uniform("pointLight", glm::vec3(4,0,-4));
+        shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
+        shader.set_uniform("lightDir", glm::normalize(glm::vec3(0, 1, 1)));
+        shader.set_uniform("lightColor", glm::vec4(0.5f, 0, 0, 1));
+        shader.set_uniform("pointLight", glm::vec3(4, 0, -4));
         shader.set_uniform("lightIntensity", 4.0f);
-        shader.set_uniform("pointLightColor", glm::vec4(0,1,0,1));
-        Mesh.draw();
+        shader.set_uniform("pointLightColor", glm::vec4(0, 1, 0, 1));
+        mesh.draw();
     }
 }
