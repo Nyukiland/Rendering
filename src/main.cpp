@@ -94,7 +94,7 @@ int main()
     .fragment = gl::ShaderSource::File{"res/fragmentFlower.glsl"},
     }};
 
-    auto const Mesh = load_mesh("res/fleur.obj");
+    auto const Mesh = load_mesh("res/Chest.obj");
 
     while (gl::window_is_open())
     {
@@ -107,7 +107,11 @@ int main()
         
         shader.bind();
         shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
-        shader.set_uniform("lightDir", glm::normalize(glm::vec3(0,0,1)));
+        shader.set_uniform("lightDir", glm::normalize(glm::vec3(0,1,1)));
+        shader.set_uniform("lightColor", glm::vec4(1,0,0,1));
+        shader.set_uniform("pointLight", glm::vec3(2,2,-2));
+        shader.set_uniform("lightIntensity", 5.0f);
+        shader.set_uniform("pointLightColor", glm::vec4(0,1,0,1));
         Mesh.draw();
     }
 }
