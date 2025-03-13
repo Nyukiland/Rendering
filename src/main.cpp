@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include "tiny_obj_loader.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 auto load_mesh(std::filesystem::path const& path) -> gl::Mesh
 {
@@ -96,17 +97,22 @@ int main()
 
     auto const Mesh = load_mesh("res/Chest.obj");
 
+    float angle = 0.0f;
+
     while (gl::window_is_open())
     {
         glm::mat4 const view_matrix = camera.view_matrix();
         glm::mat4 const projection_matrix = glm::infinitePerspective(1.f /*field of view in radians*/, gl::framebuffer_aspect_ratio() /*aspect ratio*/, 0.001f /*near plane*/);
+        glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        angle += 0.001f;
 
         glClearColor(0, 0, 0, 1.f); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //gl::bind_default_shader(); // On a besoin qu'un shader soit bind (i.e. "actif") avant de draw(). On en reparle dans la section d'après.
         
         shader.bind();
-        shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix});
+        shader.set_uniform("Project", glm::mat4{projection_matrix * view_matrix * rotMatrix});
+        shader.set_uniform("TransformMatrix", glm::mat4{rotMatrix});
         shader.set_uniform("lightDir", glm::normalize(glm::vec3(0,1,1)));
         shader.set_uniform("lightColor", glm::vec4(1,0,0,1));
         shader.set_uniform("pointLight", glm::vec3(2,2,-2));
